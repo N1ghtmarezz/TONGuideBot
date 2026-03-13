@@ -1039,9 +1039,10 @@ async def handle_scam_base(callback: CallbackQuery):
     await callback.message.answer(
         "🚨 *Топ схем мошенничества в TON — знай врага в лицо:*\n\n"
 
-        "1️⃣ *Ханипот*\n"
-        "Тебе «случайно» показывают seed-фразу богатого кошелька. Заходишь — там деньги. "
-        "Пытаешься вывести — нужна комиссия. Платишь комиссию — деньги уходят мошеннику. Классика 💀\n\n"
+        "1️⃣ *Ханипот (Honeypot)*\n"
+        "Мошенники создают токен с красивым графиком и хорошей ликвидностью. "
+        "Купить можно — продать нельзя. Смарт-контракт разрешает продажу только кошельку создателя. "
+        "Твои деньги заперты навсегда. Проверяй контракт перед покупкой любого нового токена 💀\n\n"
 
         "2️⃣ *Fake support*\n"
         "Пишет бот или человек: «Я из поддержки TON/Tonkeeper, у вас проблема с кошельком». "
@@ -1086,6 +1087,10 @@ async def handle_scam_base(callback: CallbackQuery):
         "1️⃣2️⃣ *Social engineering*\n"
         "Долго общаются, втираются в доверие, потом предлагают p2p сделку или «выгодную инвестицию». "
         "Если незнакомец предлагает что-то слишком выгодное — это скам.\n\n"
+        "1️⃣3️⃣ *Shared seed scam*\n"
+        "«Случайно» публикуют seed-фразу кошелька с деньгами. Заходишь — там токены. "
+        "Пытаешься вывести — нужна комиссия в нативном токене. Платишь комиссию — она уходит боту мошенника мгновенно. "
+        "Токены вывести невозможно — они специально заперты.\n\n"
 
         "━━━━━━━━━━━━━━━━\n"
         "🔑 *Главное правило:* seed-фраза = ключ от всего. "
@@ -1310,10 +1315,138 @@ async def handle_free_text(message: Message, state: FSMContext):
     await message.answer(response, reply_markup=kb.as_markup())
 
 
+# ─── Проактивные уведомления ──────────────────────────────────────────────────
+
+NOTIFY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "notify.json")
+
+def load_notify() -> dict:
+    if os.path.exists(NOTIFY_FILE):
+        with open(NOTIFY_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_notify(data: dict):
+    with open(NOTIFY_FILE, "w") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+def get_notify_message(uid: str, progress: dict, memory: dict) -> str | None:
+    done = set(progress.get(uid, {}).get("steps", []))
+    mem = memory.get(uid, {})
+    last_seen_str = mem.get("last_seen")
+
+    if not last_seen_str:
+        return None
+
+    try:
+        last_seen = datetime.fromisoformat(last_seen_str)
+    except Exception:
+        return None
+
+    days_ago = (datetime.now() - last_seen).days
+
+    # Только если не заходил хотя бы день
+    if days_ago < 1:
+        return None
+
+    # Сегменты
+    if "started" in done and "wallet_installed" not in done:
+        return (
+            "👋 Эй, ты заходил но так и не установил Tonkeeper!\n\n"
+            "Это буквально 2 минуты — и у тебя будет свой TON кошелёк 🚀\n"
+            "Жми /start и продолжим с того места где остановился."
+        )
+    elif "wallet_installed" in done and "wallet_created" not in done:
+        return (
+            "💼 Tonkeeper установлен — осталось создать кошелёк!\n\n"
+            "Тоша ждёт 👀 Жми /start и закончим онбординг вместе."
+        )
+    elif "wallet_created" in done and "balance_checked" not in done:
+        return (
+            "🔍 Кошелёк есть — а баланс так и не проверил?\n\n"
+            "Давай убедимся что всё работает. Жми /start 👇"
+        )
+    elif "balance_checked" in done and "quiz_done" not in done:
+        return (
+            "🎯 Ты уже в TON! Осталось пройти квиз и закрыть онбординг.\n\n"
+            "5 вопросов, 2 минуты — жми /start 💪"
+        )
+    elif "quiz_done" in done and days_ago >= 3:
+        return (
+            f"👋 Привет, {mem.get('name', 'друг')}! Давно не виделись.\n\n"
+            "Тоша скучает 😄 Зайди — есть новый факт дня и можно проверить кошелёк."
+        )
+    elif not done and days_ago >= 1:
+        return (
+            "🤔 Ты заходил но так и не начал...\n\n"
+            "Всё ещё думаешь? Давай покажу с чего начать — жми /start 🚀"
+        )
+
+    return None
+
+
+async def run_scheduler():
+    """Запускается раз в день в 12:00, отправляет проактивные уведомления"""
+    while True:
+        now = datetime.now()
+        # Следующий запуск в 12:00
+        next_run = now.replace(hour=12, minute=0, second=0, microsecond=0)
+        if now >= next_run:
+            next_run = next_run.replace(day=next_run.day + 1)
+        wait_seconds = (next_run - now).total_seconds()
+        await asyncio.sleep(wait_seconds)
+
+        try:
+            progress = {}
+            if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "progress.json")):
+                with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "progress.json")) as f:
+                    progress = json.load(f)
+
+            memory = load_memory()
+            notify_data = load_notify()
+            today = datetime.now().strftime("%Y-%m-%d")
+
+            for uid, mem in memory.items():
+                # Пропускаем если уже писали сегодня
+                if notify_data.get(uid, {}).get("last_date") == today:
+                    continue
+
+                # Пропускаем если 3 дня подряд без реакции
+                consecutive = notify_data.get(uid, {}).get("consecutive_ignored", 0)
+                if consecutive >= 3:
+                    continue
+
+                msg = get_notify_message(uid, progress, memory)
+                if not msg:
+                    continue
+
+                try:
+                    await bot.send_message(int(uid), msg)
+                    if uid not in notify_data:
+                        notify_data[uid] = {}
+                    notify_data[uid]["last_date"] = today
+
+                    # Проверяем была ли реакция на прошлое сообщение
+                    last_seen = mem.get("last_seen", "")
+                    last_notify = notify_data[uid].get("last_date", "")
+                    if last_notify and last_seen < last_notify:
+                        notify_data[uid]["consecutive_ignored"] = consecutive + 1
+                    else:
+                        notify_data[uid]["consecutive_ignored"] = 0
+
+                except Exception:
+                    pass
+
+            save_notify(notify_data)
+
+        except Exception as e:
+            print(f"Scheduler error: {e}")
+
+
 # ─── Запуск ───────────────────────────────────────────────────────────────────
 
 async def main():
     print("🤖 TON Guide запущен!")
+    asyncio.create_task(run_scheduler())
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
