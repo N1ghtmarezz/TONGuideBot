@@ -641,7 +641,7 @@ async def cmd_start(message: Message, state: FSMContext):
     fact_text = get_next_fact_for_user(message.from_user.id) or get_fact_of_day()
 
     kb = InlineKeyboardBuilder()
-    kb.button(text="😟 Боюсь потерять деньги", callback_data="fear")
+    kb.button(text="🛡️ Как не потерять деньги", callback_data="fear")
     kb.button(text="🚀 Создать TON кошелёк за 5 минут", callback_data="try_first")
     kb.button(text="🔍 Проверить баланс кошелька", callback_data="check_balance")
     kb.button(text="💱 Курс TON", callback_data="convert")
@@ -1026,7 +1026,7 @@ async def handle_security(callback: CallbackQuery):
 async def handle_restart(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     kb = InlineKeyboardBuilder()
-    kb.button(text="😟 Боюсь потерять деньги", callback_data="fear")
+    kb.button(text="🛡️ Как не потерять деньги", callback_data="fear")
     kb.button(text="🚀 Создать TON кошелёк за 5 минут", callback_data="try_first")
     kb.button(text="🔍 Проверить баланс кошелька", callback_data="check_balance")
     kb.button(text="💱 Курс TON", callback_data="convert")
