@@ -9,6 +9,7 @@
 [![Groq](https://img.shields.io/badge/AI-Groq%20LLaMA%203.3-orange)](https://groq.com)
 
 ---
+<img width="1536" height="1024" alt="aea2ff1b-e4c7-4cd3-bd95-94dd769dc91d" src="https://github.com/user-attachments/assets/57491f0e-e671-4c2c-a9bd-3cf533f20bed" />
 
 ## 🚀 Что умеет бот
 
