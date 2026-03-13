@@ -647,9 +647,7 @@ async def cmd_start(message: Message, state: FSMContext):
     kb.button(text="💱 Курс TON", callback_data="convert")
     kb.button(text="🔎 Расшифровать транзакцию", callback_data="explain_tx")
     kb.button(text="🎯 TON-квиз", callback_data="quiz_start")
-    kb.button(text="💡 Факт дня", callback_data="fact_of_day")
-    kb.button(text="🚨 Скам-база", callback_data="scam_base")
-    kb.button(text="📈 Мой прогресс", callback_data="progress")
+    kb.button(text="⚙️ Ещё", callback_data="more")
     kb.adjust(1)
 
     await message.answer(f"{greeting}\n\n{fact_text}", reply_markup=kb.as_markup(), parse_mode="Markdown")
@@ -1030,6 +1028,18 @@ async def handle_security(callback: CallbackQuery):
     await safe_answer(callback)
 
 
+@dp.callback_query(F.data == "more")
+async def handle_more(callback: CallbackQuery):
+    kb = InlineKeyboardBuilder()
+    kb.button(text="💡 Факт дня", callback_data="fact_of_day")
+    kb.button(text="🚨 Скам-база", callback_data="scam_base")
+    kb.button(text="📈 Мой прогресс", callback_data="progress")
+    kb.button(text="🏠 В начало", callback_data="restart")
+    kb.adjust(1)
+    await callback.message.answer("Вот что ещё есть 👇", reply_markup=kb.as_markup())
+    await safe_answer(callback)
+
+
 @dp.callback_query(F.data == "scam_base")
 async def handle_scam_base(callback: CallbackQuery):
     kb = InlineKeyboardBuilder()
@@ -1111,9 +1121,7 @@ async def handle_restart(callback: CallbackQuery, state: FSMContext):
     kb.button(text="💱 Курс TON", callback_data="convert")
     kb.button(text="🔎 Расшифровать транзакцию", callback_data="explain_tx")
     kb.button(text="🎯 TON-квиз", callback_data="quiz_start")
-    kb.button(text="💡 Факт дня", callback_data="fact_of_day")
-    kb.button(text="🚨 Скам-база", callback_data="scam_base")
-    kb.button(text="📈 Мой прогресс", callback_data="progress")
+    kb.button(text="⚙️ Ещё", callback_data="more")
     kb.adjust(1)
 
     await callback.message.answer(
