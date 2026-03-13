@@ -648,6 +648,7 @@ async def cmd_start(message: Message, state: FSMContext):
     kb.button(text="🔎 Расшифровать транзакцию", callback_data="explain_tx")
     kb.button(text="🎯 TON-квиз", callback_data="quiz_start")
     kb.button(text="💡 Факт дня", callback_data="fact_of_day")
+    kb.button(text="🚨 Скам-база", callback_data="scam_base")
     kb.button(text="📈 Мой прогресс", callback_data="progress")
     kb.adjust(1)
 
@@ -819,6 +820,8 @@ async def handle_address_input(message: Message, state: FSMContext):
 
     kb = InlineKeyboardBuilder()
     kb.button(text="🔍 Проверить другой адрес", callback_data="check_balance")
+    kb.button(text="🔎 Расшифровать транзакцию", callback_data="explain_tx")
+    kb.button(text="🎯 Пройти TON-квиз", callback_data="quiz_start")
     kb.button(text="🏠 В начало", callback_data="restart")
     kb.adjust(1)
 
@@ -910,9 +913,14 @@ async def handle_wallet_help(callback: CallbackQuery):
 async def handle_wallet_created(callback: CallbackQuery):
     track("wallet_created", callback.from_user.id)
     mark_step(callback.from_user.id, "wallet_created")
+
+    share_text = "Только что создал свой первый TON кошелёк 🔥 Попробуй сам — @TONmassBot"
+    share_url = f"https://t.me/share/url?url=https://t.me/TONmassBot&text={share_text}"
+
     kb = InlineKeyboardBuilder()
     kb.button(text="🔍 Проверить баланс кошелька", callback_data="check_balance")
     kb.button(text="💧 Хочу тестовые TON", callback_data="get_testnet")
+    kb.button(text="📤 Поделиться с другом", url=share_url)
     kb.button(text="➡️ Пропустить", callback_data="what_next")
     kb.adjust(1)
 
@@ -1022,6 +1030,72 @@ async def handle_security(callback: CallbackQuery):
     await safe_answer(callback)
 
 
+@dp.callback_query(F.data == "scam_base")
+async def handle_scam_base(callback: CallbackQuery):
+    kb = InlineKeyboardBuilder()
+    kb.button(text="🏠 В начало", callback_data="restart")
+    kb.adjust(1)
+
+    await callback.message.answer(
+        "🚨 *Топ схем мошенничества в TON — знай врага в лицо:*\n\n"
+
+        "1️⃣ *Ханипот*\n"
+        "Тебе «случайно» показывают seed-фразу богатого кошелька. Заходишь — там деньги. "
+        "Пытаешься вывести — нужна комиссия. Платишь комиссию — деньги уходят мошеннику. Классика 💀\n\n"
+
+        "2️⃣ *Fake support*\n"
+        "Пишет бот или человек: «Я из поддержки TON/Tonkeeper, у вас проблема с кошельком». "
+        "Просит seed-фразу или пароль. Настоящая поддержка НИКОГДА не просит seed.\n\n"
+
+        "3️⃣ *Фишинг*\n"
+        "Сайты типа fragment.com.ru, t0nkeeper.com, ton-official.org. "
+        "Вводишь seed — всё, кошелёк пустой. Всегда проверяй URL дважды.\n\n"
+
+        "4️⃣ *Airdrop скам*\n"
+        "«Отправь 1 TON — получи 10 обратно». «Павел Дуров раздаёт TON». "
+        "Никто ничего не раздаёт. Отправишь — не вернёшь.\n\n"
+
+        "5️⃣ *Fake Tonkeeper/MyTonWallet*\n"
+        "APK с левых сайтов или поддельные приложения в сторах. "
+        "Вводишь seed при установке — его сразу крадут. Только официальные источники: tonkeeper.com\n\n"
+
+        "6️⃣ *Fake NFT*\n"
+        "Копируют популярную коллекцию — визуально одинаково, цена ниже. "
+        "Проверяй адрес контракта коллекции на Getgems перед покупкой.\n\n"
+
+        "7️⃣ *Rugpull*\n"
+        "Новый токен с красивым сайтом и обещаниями х100. Собирают деньги — и исчезают. "
+        "DYOR: проверяй команду, аудит, локап токенов.\n\n"
+
+        "8️⃣ *Malicious dApp*\n"
+        "Подключаешь Tonkeeper к незнакомому сайту. Он просит подписать транзакцию — "
+        "ты думаешь это просто вход, а это разрешение на вывод всех средств.\n\n"
+
+        "9️⃣ *Fake validator / стейкинг*\n"
+        "«100% APY, гарантировано!» Вкладываешь — через месяц сайт исчезает. "
+        "Реальный стейкинг: только проверенные платформы типа Tonstakers.\n\n"
+
+        "🔟 *Impersonation боты*\n"
+        "@TonkeeperSupport, @TON_Help, @PavelDurov_official — всё фейки. "
+        "Пишут сами, предлагают «помощь», в итоге просят seed или деньги.\n\n"
+
+        "1️⃣1️⃣ *Pump & dump каналы*\n"
+        "Тебя добавляют в закрытый канал с «инсайдами». Говорят купить токен X. "
+        "Ты покупаешь — организаторы продают на твоих деньгах. Ты в минусе.\n\n"
+
+        "1️⃣2️⃣ *Social engineering*\n"
+        "Долго общаются, втираются в доверие, потом предлагают p2p сделку или «выгодную инвестицию». "
+        "Если незнакомец предлагает что-то слишком выгодное — это скам.\n\n"
+
+        "━━━━━━━━━━━━━━━━\n"
+        "🔑 *Главное правило:* seed-фраза = ключ от всего. "
+        "Никому, никогда, ни при каких обстоятельствах.",
+        reply_markup=kb.as_markup(),
+        parse_mode="Markdown"
+    )
+    await safe_answer(callback)
+
+
 @dp.callback_query(F.data == "restart")
 async def handle_restart(callback: CallbackQuery, state: FSMContext):
     await state.clear()
@@ -1033,6 +1107,7 @@ async def handle_restart(callback: CallbackQuery, state: FSMContext):
     kb.button(text="🔎 Расшифровать транзакцию", callback_data="explain_tx")
     kb.button(text="🎯 TON-квиз", callback_data="quiz_start")
     kb.button(text="💡 Факт дня", callback_data="fact_of_day")
+    kb.button(text="🚨 Скам-база", callback_data="scam_base")
     kb.button(text="📈 Мой прогресс", callback_data="progress")
     kb.adjust(1)
 
@@ -1146,6 +1221,14 @@ async def handle_quiz_answer(callback: CallbackQuery, state: FSMContext):
         await safe_answer(callback)
         return
 
+    # Throttle — игнорируем если вопрос уже сменился
+    if quiz_state[uid]["question"] != q_index:
+        await safe_answer(callback)
+        return
+
+    # Блокируем повторные нажатия
+    quiz_state[uid]["question"] = q_index + 1
+
     q = QUIZ_QUESTIONS[q_index]
     correct = q["correct"]
     is_correct = answer == correct
@@ -1181,8 +1264,12 @@ async def handle_quiz_answer(callback: CallbackQuery, state: FSMContext):
         else:
             verdict = "📚 Неплохо для начала! Попробуй ещё раз."
 
+        share_text = "Только что прошёл TON-квиз и разобрался с блокчейном 🔥 Попробуй сам — @TONmassBot"
+        share_url = f"https://t.me/share/url?url=https://t.me/TONmassBot&text={share_text}"
+
         kb = InlineKeyboardBuilder()
         kb.button(text="🔄 Пройти снова", callback_data="quiz_start")
+        kb.button(text="📤 Поделиться с другом", url=share_url)
         kb.button(text="📈 Мой прогресс", callback_data="progress")
         kb.button(text="🏠 В начало", callback_data="restart")
         kb.adjust(2)
